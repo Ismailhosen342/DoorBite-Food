@@ -7,6 +7,10 @@ $currentPage = 'settings';
 
 $stmt = $pdo->query("SELECT * FROM settings LIMIT 1");
 $settings = $stmt->fetch();
+if (!$settings) {
+    $pdo->query("INSERT INTO settings (filter_type) VALUES ('daily')");
+    $settings = ['filter_type' => 'daily'];
+}
 
 $stmt = $pdo->query("SELECT * FROM products WHERE is_deleted = TRUE ORDER BY deleted_at DESC");
 $trashedProducts = $stmt->fetchAll();
