@@ -62,7 +62,7 @@ $totalProducts = (int)($stmt->fetch()['count'] ?? 0);
 // --------------------
 // Low stock count
 // --------------------
-$stmt = $pdo->query("SELECT COUNT(*) AS count FROM products WHERE stock < 10");
+$stmt = $pdo->query("SELECT COUNT(*) AS count FROM products WHERE stock < 3");
 $lowStockCount = (int)($stmt->fetch()['count'] ?? 0);
 
 // --------------------
@@ -71,7 +71,7 @@ $lowStockCount = (int)($stmt->fetch()['count'] ?? 0);
 $stmt = $pdo->query("
     SELECT id, name, stock
     FROM products
-    WHERE stock < 10
+    WHERE stock < 3
     ORDER BY stock ASC
     LIMIT 5
 ");
