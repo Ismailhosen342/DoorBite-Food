@@ -1,44 +1,101 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require_once 'config/database.php';
 requireLogin();
 
 $pageTitle = 'Dashboard';
 $currentPage = 'dashboard';
 
-$stmt = $pdo->query("SELECT COALESCE(SUM(total_amount), 0) as revenue FROM sales WHERE DATE(created_at) = CURRENT_DATE");
-$todayRevenue = $stmt->fetch()['revenue'];
+// --------------------
+// Helper: check column exists
+// --------------------
+function columnExists(PDO $pdo, string $table, string $column): bool {
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+    ");
+    $stmt->execute([$table, $column]);
+    return (int)$stmt->fetchColumn() > 0;
+}
 
+$hasBuyingPrice = columnExists($pdo, 'products', 'buying_price');
+
+// --------------------
+// Today's revenue
+// --------------------
 $stmt = $pdo->query("
-    SELECT COALESCE(SUM(s.total_amount) - SUM(si.quantity * p.buying_price), 0) as profit
-    FROM sales s
-    JOIN sale_items si ON s.id = si.sale_id
-    JOIN products p ON si.product_id = p.id
-    WHERE DATE(s.created_at) = CURRENT_DATE
+    SELECT COALESCE(SUM(total_amount), 0) AS revenue
+    FROM sales
+    WHERE DATE(created_at) = CURDATE()
 ");
-$todayProfit = $stmt->fetch()['profit'];
+$todayRevenue = (float)($stmt->fetch()['revenue'] ?? 0);
 
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE is_deleted = FALSE");
-$totalProducts = $stmt->fetch()['count'];
+// --------------------
+// Today's profit (REAL)
+// profit = SUM(qty * (unit_price - buying_price))
+// --------------------
+if ($hasBuyingPrice) {
+    $stmt = $pdo->query("
+        SELECT COALESCE(SUM(si.quantity * (si.unit_price - p.buying_price)), 0) AS profit
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        JOIN products p ON p.id = si.product_id
+        WHERE DATE(s.created_at) = CURDATE()
+    ");
+    $todayProfit = (float)($stmt->fetch()['profit'] ?? 0);
+} else {
+    $todayProfit = 0.0; // safe fallback
+}
 
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE stock < 10 AND is_deleted = FALSE");
-$lowStockCount = $stmt->fetch()['count'];
+// --------------------
+// Total products
+// --------------------
+$stmt = $pdo->query("SELECT COUNT(*) AS count FROM products");
+$totalProducts = (int)($stmt->fetch()['count'] ?? 0);
 
-$stmt = $pdo->query("SELECT * FROM products WHERE stock < 10 AND is_deleted = FALSE ORDER BY stock ASC LIMIT 5");
+// --------------------
+// Low stock count
+// --------------------
+$stmt = $pdo->query("SELECT COUNT(*) AS count FROM products WHERE stock < 10");
+$lowStockCount = (int)($stmt->fetch()['count'] ?? 0);
+
+// --------------------
+// Low stock products list
+// --------------------
+$stmt = $pdo->query("
+    SELECT id, name, stock
+    FROM products
+    WHERE stock < 10
+    ORDER BY stock ASC
+    LIMIT 5
+");
 $lowStockProducts = $stmt->fetchAll();
 
+// --------------------
+// Recent sales today
+// --------------------
 $stmt = $pdo->query("
-    SELECT p.name, si.quantity, (si.quantity * si.unit_price) as amount
+    SELECT p.name, si.quantity, (si.quantity * si.unit_price) AS amount
     FROM sale_items si
     JOIN products p ON si.product_id = p.id
     JOIN sales s ON si.sale_id = s.id
-    WHERE DATE(s.created_at) = CURRENT_DATE
+    WHERE DATE(s.created_at) = CURDATE()
     ORDER BY s.created_at DESC
     LIMIT 5
 ");
 $recentSales = $stmt->fetchAll();
 
-include 'includes/header.php';
-include 'includes/sidebar.php';
+// --------------------
+// Layout includes
+// --------------------
+require_once 'includes/header.php';
+require_once 'includes/sidebar.php';
 ?>
 
 <main class="main-content">
@@ -48,7 +105,7 @@ include 'includes/sidebar.php';
         </div>
         <div class="page-date">Today: <?php echo date('F jS, Y'); ?></div>
     </div>
-    
+
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">
@@ -58,7 +115,7 @@ include 'includes/sidebar.php';
             <div class="stat-value revenue">RM <?php echo number_format($todayRevenue, 2); ?></div>
             <div class="stat-sub">Today's earnings</div>
         </div>
-        
+
         <div class="stat-card">
             <div class="stat-label">
                 <span>Net Profit</span>
@@ -67,9 +124,16 @@ include 'includes/sidebar.php';
                 </svg>
             </div>
             <div class="stat-value profit">RM <?php echo number_format($todayProfit, 2); ?></div>
-            <div class="stat-sub">Today's profit</div>
+
+            <?php if (!$hasBuyingPrice): ?>
+                <div class="stat-sub" style="color:#6b7280;">
+                    (buying_price missing — profit = 0)
+                </div>
+            <?php else: ?>
+                <div class="stat-sub">Today's profit</div>
+            <?php endif; ?>
         </div>
-        
+
         <div class="stat-card">
             <div class="stat-label">
                 <span>Total Products</span>
@@ -80,7 +144,7 @@ include 'includes/sidebar.php';
             <div class="stat-value"><?php echo $totalProducts; ?></div>
             <div class="stat-sub">In inventory</div>
         </div>
-        
+
         <div class="stat-card">
             <div class="stat-label">
                 <span>Low Stock</span>
@@ -92,7 +156,7 @@ include 'includes/sidebar.php';
             <div class="stat-sub">Items need restocking</div>
         </div>
     </div>
-    
+
     <div class="content-grid">
         <div class="card">
             <h3 class="card-title">Low Stock Alerts</h3>
@@ -105,15 +169,15 @@ include 'includes/sidebar.php';
                             <span class="alert-dot"></span>
                             <div>
                                 <div class="alert-name"><?php echo htmlspecialchars($product['name']); ?></div>
-                                <div class="alert-stock">Stock: <?php echo $product['stock']; ?></div>
+                                <div class="alert-stock">Stock: <?php echo (int)$product['stock']; ?></div>
                             </div>
                         </div>
-                        <a href="inventory.php?restock=<?php echo $product['id']; ?>" class="alert-action">Restock Needed</a>
+                        <a href="inventory.php?restock=<?php echo (int)$product['id']; ?>" class="alert-action">Restock Needed</a>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-        
+
         <div class="card">
             <h3 class="card-title">Recent Sales</h3>
             <?php if (empty($recentSales)): ?>
@@ -123,9 +187,9 @@ include 'includes/sidebar.php';
                     <div class="sale-item">
                         <div>
                             <div class="sale-name"><?php echo htmlspecialchars($sale['name']); ?></div>
-                            <div class="sale-qty">Qty: <?php echo $sale['quantity']; ?></div>
+                            <div class="sale-qty">Qty: <?php echo (int)$sale['quantity']; ?></div>
                         </div>
-                        <div class="sale-amount">+RM <?php echo number_format($sale['amount'], 2); ?></div>
+                        <div class="sale-amount">+RM <?php echo number_format((float)$sale['amount'], 2); ?></div>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -133,4 +197,4 @@ include 'includes/sidebar.php';
     </div>
 </main>
 
-<?php include 'includes/footer.php'; ?>
+<?php require_once 'includes/footer.php'; ?>

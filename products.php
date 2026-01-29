@@ -2,19 +2,29 @@
 require_once 'config/database.php';
 requireLogin();
 
+
+$userId = (int)$_SESSION['user_id'];
+$query = "SELECT * FROM products WHERE user_id = ? AND is_deleted = 0";
+$params = [$userId];
+
+
 $pageTitle = 'Products';
 $currentPage = 'products';
 
 $search = $_GET['search'] ?? '';
-$query = "SELECT * FROM products WHERE is_deleted = FALSE";
+
+$query = "SELECT id, name, buying_price, selling_price, stock, is_deleted
+          FROM products
+          WHERE is_deleted = 0";
 $params = [];
 
 if ($search) {
-    $query .= " AND LOWER(name) LIKE LOWER(?)";
+    $query .= " AND name LIKE ?";
     $params[] = "%$search%";
 }
 
-$query .= " ORDER BY id";
+$query .= " ORDER BY id DESC";
+
 $stmt = $pdo->prepare($query);
 $stmt->execute($params);
 $products = $stmt->fetchAll();
@@ -52,29 +62,39 @@ include 'includes/sidebar.php';
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($products as $index => $product): ?>
+                <?php if (empty($products)): ?>
                     <tr>
-                        <td>#<?php echo $index + 1; ?></td>
-                        <td><?php echo htmlspecialchars($product['name']); ?></td>
-                        <td>RM <?php echo number_format($product['buying_price'], 2); ?></td>
-                        <td>RM <?php echo number_format($product['selling_price'], 2); ?></td>
-                        <td class="<?php echo $product['stock'] < 10 ? 'stock-low' : ''; ?>">
-                            <?php echo $product['stock']; ?>
-                        </td>
-                        <td>
-                            <button class="action-btn" onclick="openModal('edit', <?php echo htmlspecialchars(json_encode($product)); ?>)">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                            </button>
-                            <button class="action-btn delete" onclick="deleteProduct(<?php echo $product['id']; ?>)">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
+                        <td colspan="6" style="text-align:center;padding:30px;color:#9ca3af;">
+                            No products found
                         </td>
                     </tr>
-                <?php endforeach; ?>
+                <?php else: ?>
+                    <?php foreach ($products as $product): ?>
+                        <tr>
+                            <td>#<?php echo (int)$product['id']; ?></td>
+                            <td><?php echo htmlspecialchars($product['name']); ?></td>
+                            <td>RM <?php echo number_format((float)($product['buying_price'] ?? 0), 2); ?></td>
+                            <td>RM <?php echo number_format((float)($product['selling_price'] ?? 0), 2); ?></td>
+                            <td class="<?php echo ((int)$product['stock'] < 10) ? 'stock-low' : ''; ?>">
+                                <?php echo (int)$product['stock']; ?>
+                            </td>
+                            <td>
+                                <button class="action-btn"
+                                    onclick='openModal("edit", <?php echo json_encode($product, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>)'>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+
+                                <button class="action-btn delete" onclick="deleteProduct(<?php echo (int)$product['id']; ?>)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -116,13 +136,13 @@ function openModal(mode, product = null) {
     isEditing = mode === 'edit';
     document.getElementById('modalTitle').textContent = isEditing ? 'Edit Product' : 'Add Product';
     document.getElementById('productModal').classList.add('active');
-    
+
     if (isEditing && product) {
         document.getElementById('productId').value = product.id;
-        document.getElementById('productName').value = product.name;
-        document.getElementById('buyingPrice').value = product.buying_price;
-        document.getElementById('sellingPrice').value = product.selling_price;
-        document.getElementById('stock').value = product.stock;
+        document.getElementById('productName').value = product.name || '';
+        document.getElementById('buyingPrice').value = product.buying_price ?? 0;
+        document.getElementById('sellingPrice').value = product.selling_price ?? 0;
+        document.getElementById('stock').value = product.stock ?? 0;
     } else {
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
@@ -135,43 +155,31 @@ function closeModal() {
 
 document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(this);
     formData.append('action', isEditing ? 'update' : 'add');
-    
-    fetch('api/products.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
+
+    fetch('api/products.php', { method: 'POST', body: formData })
+    .then(r => r.json())
     .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
+        if (data.success) location.reload();
+        else alert('Error: ' + data.message);
     });
 });
 
 function deleteProduct(id) {
-    if (confirm('Are you sure you want to delete this product?')) {
-        const formData = new FormData();
-        formData.append('action', 'delete');
-        formData.append('id', id);
-        
-        fetch('api/products.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        });
-    }
+    if (!confirm('Are you sure you want to delete this product?')) return;
+
+    const formData = new FormData();
+    formData.append('action', 'delete');
+    formData.append('id', id);
+
+    fetch('api/products.php', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert('Error: ' + data.message);
+    });
 }
 
 document.getElementById('searchInput').addEventListener('input', function(e) {
@@ -179,7 +187,7 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
     clearTimeout(this.searchTimeout);
     this.searchTimeout = setTimeout(() => {
         window.location.href = 'products.php?search=' + encodeURIComponent(search);
-    }, 500);
+    }, 400);
 });
 </script>
 

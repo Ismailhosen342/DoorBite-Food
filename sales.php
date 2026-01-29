@@ -2,10 +2,18 @@
 require_once 'config/database.php';
 requireLogin();
 
+
+$userId = (int)$_SESSION['user_id'];
+$stmt = $pdo->prepare("SELECT * FROM products WHERE user_id=? AND is_deleted=0 ORDER BY name");
+$stmt->execute([$userId]);
+$products = $stmt->fetchAll();
+
+
 $pageTitle = 'Sales';
 $currentPage = 'sales';
 
-$stmt = $pdo->query("SELECT * FROM products WHERE is_deleted = FALSE ORDER BY name");
+// MySQL: is_deleted is TINYINT(1) => use 0/1
+$stmt = $pdo->query("SELECT id, name, stock, selling_price FROM products WHERE is_deleted = 0 ORDER BY name");
 $products = $stmt->fetchAll();
 
 include 'includes/header.php';
@@ -30,15 +38,15 @@ include 'includes/sidebar.php';
             
             <div class="products-grid" id="productsGrid">
                 <?php foreach ($products as $product): ?>
-                    <div class="product-card <?php echo $product['stock'] < 10 ? 'low-stock' : ''; ?>" 
-                         data-id="<?php echo $product['id']; ?>"
+                    <div class="product-card <?php echo ((int)$product['stock'] < 10) ? 'low-stock' : ''; ?>" 
+                         data-id="<?php echo (int)$product['id']; ?>"
                          data-name="<?php echo htmlspecialchars($product['name']); ?>"
-                         data-price="<?php echo $product['selling_price']; ?>"
-                         data-stock="<?php echo $product['stock']; ?>"
+                         data-price="<?php echo (float)$product['selling_price']; ?>"
+                         data-stock="<?php echo (int)$product['stock']; ?>"
                          onclick="addToCart(this)">
                         <div class="product-name"><?php echo htmlspecialchars($product['name']); ?></div>
-                        <div class="product-stock">Stock: <?php echo $product['stock']; ?></div>
-                        <div class="product-price">RM <?php echo number_format($product['selling_price'], 2); ?></div>
+                        <div class="product-stock">Stock: <?php echo (int)$product['stock']; ?></div>
+                        <div class="product-price">RM <?php echo number_format((float)$product['selling_price'], 2); ?></div>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -86,12 +94,12 @@ let cart = [];
 
 function addToCart(element) {
     const id = element.dataset.id;
-    const name = element.dataset.name;
+    const name = element.dataset.name; // now fixed
     const price = parseFloat(element.dataset.price);
     const stock = parseInt(element.dataset.stock);
-    
+
     const existingItem = cart.find(item => item.id === id);
-    
+
     if (existingItem) {
         if (existingItem.quantity < stock) {
             existingItem.quantity++;
@@ -107,7 +115,6 @@ function addToCart(element) {
             return;
         }
     }
-    
     updateCart();
 }
 
@@ -129,7 +136,7 @@ function updateCart() {
     const cartEmpty = document.getElementById('cartEmpty');
     const cartItems = document.getElementById('cartItems');
     const completeSaleBtn = document.getElementById('completeSaleBtn');
-    
+
     if (cart.length === 0) {
         cartEmpty.style.display = 'block';
         cartItems.style.display = 'none';
@@ -138,7 +145,7 @@ function updateCart() {
         cartEmpty.style.display = 'none';
         cartItems.style.display = 'block';
         completeSaleBtn.disabled = false;
-        
+
         cartItems.innerHTML = cart.map(item => `
             <div class="cart-item">
                 <div>
@@ -153,11 +160,11 @@ function updateCart() {
             </div>
         `).join('');
     }
-    
+
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const tax = 0;
     const total = subtotal + tax;
-    
+
     document.getElementById('subtotal').textContent = 'RM ' + subtotal.toFixed(2);
     document.getElementById('tax').textContent = 'RM ' + tax.toFixed(2);
     document.getElementById('total').textContent = 'RM ' + total.toFixed(2);
@@ -165,16 +172,16 @@ function updateCart() {
 
 function completeSale() {
     if (cart.length === 0) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'complete_sale');
     formData.append('items', JSON.stringify(cart));
-    
+
     fetch('api/sales.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(res => res.json())
     .then(data => {
         if (data.success) {
             alert('Sale completed successfully!');
@@ -185,16 +192,16 @@ function completeSale() {
             alert('Error: ' + data.message);
         }
     })
-    .catch(error => {
+    .catch(err => {
         alert('Error completing sale');
-        console.error(error);
+        console.error(err);
     });
 }
 
 document.getElementById('productSearch').addEventListener('input', function(e) {
     const search = e.target.value.toLowerCase();
     document.querySelectorAll('.product-card').forEach(card => {
-        const name = card.dataset.name.toLowerCase();
+        const name = (card.dataset.name || '').toLowerCase();
         card.style.display = name.includes(search) ? 'block' : 'none';
     });
 });
