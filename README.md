@@ -1,112 +1,161 @@
- 
-# DoorBite Food! 🍟🍫  
-Snack & Food Inventory and Sales Management System
+# 🍟 DoorBite Food! 🍫  
+### Snack & Food Inventory and Sales Management System
 
-DoorBite Food! is a web-based inventory and sales management system designed for small shops, cafeterias, or snack businesses.  
-It helps manage products, stock, sales, bulk selling, reports, and user access through a simple dashboard.
+> **DoorBite Food!** is a modern, web-based inventory and sales management system designed for **small shops, cafeterias, and snack businesses**.  
+>  
+> Manage products, track stock, process sales (including bulk selling), analyze reports, and control user access — all from a clean and simple dashboard.
 
 ---
 
-## ✨ Features
+## 🌟 Why DoorBite Food?
 
-### 🔐 Authentication
-- Login & Signup system
-- Role-based users (Admin / Staff)
-- Secure session handling
-- Logout functionality
+✔ Simple to use  
+✔ Real-time stock tracking  
+✔ Accurate profit calculation  
+✔ Perfect for small businesses & students  
+✔ Clean UI with practical business logic  
 
-### 📊 Dashboard
-- Today’s revenue
-- Net profit calculation
-- Total products count
-- Low stock alerts
-- Recent sales overview
+---
 
-### 🛒 Sales
-- Point-of-sale (POS) style sales page
+## ✨ Core Features
+
+### 🔐 Authentication & Access Control
+- Secure **Login & Signup**
+- **Role-based access** (Admin / Staff)
+- PHP Session-based authentication
+- Logout with session destruction
+
+---
+
+### 📊 Smart Dashboard
+- 📅 Today’s Revenue
+- 💰 Net Profit Calculation
+- 📦 Total Products Overview
+- ⚠️ Low Stock Alerts
+- 🧾 Recent Sales Summary
+
+---
+
+### 🛒 Sales (POS System)
+- Point-of-Sale style interface
 - Add products to cart
 - Automatic stock deduction
 - Prevents selling out-of-stock items
+- Transaction-safe sale processing
 
-### 📦 Bulk Sell
-- Sell multiple products at once
-- Enter **current stock (counted)** for each product
-- System automatically calculates sold quantity
-- Updates stock, sales, and inventory logs in one action
+---
 
-### 🧾 Products
-- Add, edit, and soft-delete products
+### 📦 Bulk Sell (Stock Count Method)
+- Sell **multiple products at once**
+- Enter **current counted stock**
+- System auto-calculates sold quantity  
+  *(Sold = Previous Stock − Current Stock)*
+- Updates:
+  - Products stock
+  - Sales records
+  - Inventory logs  
+  all in **one action**
+
+---
+
+### 🧾 Product Management
+- Add, edit & soft-delete products
 - Buying price & selling price
-- Stock tracking
-- Low stock highlighting
+- Live stock tracking
+- Low-stock highlighting
+
+---
 
 ### 📋 Inventory Logs
-- Track all stock changes
-- Reasons: restock, adjustment, sale
-- Shows old stock vs new stock
-- Product names displayed correctly
+- Full stock movement history
+- Reasons:
+  - Restock
+  - Adjustment
+  - Sale
+- Displays:
+  - Product name
+  - Old stock → New stock
+- Helps prevent stock mismatch
 
-### 📈 Reports
-- Total revenue
-- Total cost
-- Net profit
-- Last 7 days sales chart
-- Items sold statistics
-- CSV export option
+---
+
+### 📈 Reports & Analytics
+- Total Revenue
+- Total Cost
+- Net Profit
+- 📊 Last 7 Days Sales Chart
+- 📦 Items Sold Statistics
+- 📁 CSV Export support
+
+---
 
 ### ⚙️ Settings
-- User information
-- System configuration (expandable)
+- User profile info
+- Role display
+- Extendable for future configurations
 
 ---
 
-## 🧱 Tech Stack
+## 🧱 Technology Stack
 
-- **Backend:** PHP (PDO)
-- **Database:** MySQL
-- **Frontend:** HTML, CSS, JavaScript
-- **Charts:** Chart.js
-- **Server:** Apache / Nginx
-- **Authentication:** PHP Sessions
+| Layer | Technology |
+|-----|-----------|
+| Backend | PHP (PDO) |
+| Database | MySQL |
+| Frontend | HTML, CSS, JavaScript |
+| Charts | Chart.js |
+| Server | Apache / Nginx |
+| Auth | PHP Sessions |
 
 ---
+
+## 📁 Project Structure
+
+```
+
 /
 ├── config/
-│   └── database.php      # Database connection and session handling
+│   └── database.php       # Database connection & session helpers
 ├── includes/
-│   ├── header.php        # HTML header template
-│   ├── sidebar.php       # Navigation sidebar
-│   └── footer.php        # HTML footer template
+│   ├── header.php         # HTML header template
+│   ├── sidebar.php        # Navigation sidebar
+│   └── footer.php         # Footer template
 ├── api/
-│   ├── products.php      # Product CRUD API
-│   ├── sales.php         # Sales processing API
-│   ├── inventory.php     # Inventory management API
-│   ├── settings.php      # Settings API
-│   └── export.php        # CSV export
+│   ├── products.php       # Product CRUD API
+│   ├── sales.php          # Sales processing API
+│   ├── inventory.php      # Inventory & stock logs API
+│   ├── settings.php       # Settings API
+│   └── export.php         # CSV export
 ├── css/
-│   └── style.css         # Main stylesheet
+│   └── style.css          # Main stylesheet
 ├── js/
-│   └── app.js            # JavaScript utilities
-├── index.php             # Redirect to login
-├── login.php             # Login page
-├── logout.php            # Session logout
-├── dashboard.php         # Dashboard page
-├── sales.php             # Sales POS page
-├── products.php          # Products management
-├── inventory.php         # Inventory logs
-├── reports.php           # Sales reports
-└── settings.php          # App settings
+│   └── app.js             # JavaScript utilities
+├── index.php              # Redirect to login
+├── login.php              # Login page
+├── logout.php             # Logout handler
+├── dashboard.php          # Dashboard
+├── sales.php              # POS sales page
+├── bulk_sell.php          # Bulk selling page
+├── products.php           # Products management
+├── inventory.php          # Inventory logs
+├── reports.php            # Reports & charts
+└── settings.php           # App settings
 
-## 🗄️ Database Structure
+````
 
-Main tables used:
+---
+
+## 🗄️ Database Tables
+
+Main tables used in the system:
+
 - `users`
 - `products`
 - `sales`
 - `sale_items`
 - `inventory_logs`
 
-All product stock changes are logged in `inventory_logs`.
+📌 **Every stock change is recorded** in `inventory_logs` for transparency.
 
 ---
 
@@ -117,25 +166,23 @@ All product stock changes are logged in `inventory_logs`.
 git clone https://github.com/your-username/doorbite-food.git
 ````
 
-or upload files to your server.
+Or upload the files to your web server.
 
 ---
 
 ### 2️⃣ Create Database
 
-Create a MySQL database and import your SQL structure.
-
-Example:
-
 ```sql
 CREATE DATABASE doorbite;
 ```
 
+Import your SQL structure into this database.
+
 ---
 
-### 3️⃣ Configure Database
+### 3️⃣ Configure Database Connection
 
-Edit file:
+Edit:
 
 ```
 config/database.php
@@ -150,9 +197,9 @@ $password = 'your_db_password';
 
 ---
 
-### 4️⃣ Run Project
+### 4️⃣ Run the Application
 
-Open in browser:
+Open in your browser:
 
 ```
 http://localhost/doorbite/
@@ -160,9 +207,9 @@ http://localhost/doorbite/
 
 ---
 
-## 👤 Default Roles
+## 👤 User Roles
 
-| Role  | Access            |
+| Role  | Permissions       |
 | ----- | ----------------- |
 | Admin | Full access       |
 | Staff | Sales & inventory |
@@ -171,22 +218,22 @@ http://localhost/doorbite/
 
 ## 🧠 Business Logic Highlights
 
-* **Stock never goes negative**
-* **Bulk sell calculates sold automatically**
-* **Inventory logs keep full history**
-* **Profit = Revenue − Cost**
-* **Each sale updates stock safely using transactions**
+✔ Stock never goes negative
+✔ Bulk sell auto-calculates sold quantity
+✔ Inventory logs maintain full history
+✔ Profit = Revenue − Cost
+✔ Transactions ensure data safety
 
 ---
 
-## 📌 Future Improvements (Optional)
+## 📌 Future Enhancements (Optional)
 
 * Per-user data separation
 * Product categories
-* Daily / monthly profit reports
-* Barcode scanner support
-* Mobile-friendly POS mode
-* Email notifications for low stock
+* Monthly & yearly reports
+* Barcode scanner integration
+* Mobile-friendly POS
+* Email alerts for low stock
 
 ---
 
@@ -203,14 +250,16 @@ Albukhary International University
 © 2025 **Ismail Hosen**
 All rights reserved.
 
-This project is developed for educational and business use.
-Unauthorized commercial redistribution is not allowed.
+This project is developed for **educational and small business use**.
+Unauthorized commercial redistribution is prohibited.
 
 ---
 
 ## ❤️ Thank You
 
 Thank you for using **DoorBite Food!**
-If you like this project, feel free to improve or extend it 🚀
+If you like this project, feel free to ⭐ star it, improve it, or extend it 🚀
+
+```
 
  
